@@ -1,6 +1,7 @@
 """
 ASR Agent：语音转文字
 """
+import requests
 import dashscope
 from dashscope.audio.asr import Transcription
 from backend.config import DASHSCOPE_API_KEY, QWEN_ASR_MODEL
@@ -13,27 +14,25 @@ dashscope.api_key = DASHSCOPE_API_KEY
 def transcribe_audio(audio_url: str):
     """
     把音频文件转成文字
-    :param audio_url: 音频文件的 URL 或本地路径
+    :param audio_url: 音频文件的 URL
     :return: 转写结果
     """
-    # Demo 阶段：先 mock，等有公网音频 URL 再接真实 ASR
-    return {
-        "text": "今天在大理古城逛了逛，人好多啊，但是很有感觉。吃了一家很好吃的米线，老板是本地人，说他们做了三十年了。下午去了洱海，风吹过来特别舒服，看到好多人在拍照。晚上去了双廊，看了日落，太治愈了。",
-        "usage": {"input_tokens": 0, "output_tokens": 120},
-    }
+    task = Transcription.async_call(
+        model=QWEN_ASR_MODEL,
+        file_urls=[audio_url],
+    )
+    task_id = task.output["task_id"]
 
-    # 真实调用千问 ASR（需要公网可访问的音频 URL，本地文件不行）
-    # task = Transcription.async_call(
-    #     model=QWEN_ASR_MODEL,
-    #     file_urls=[audio_url],
-    # )
-    # result = Transcription.wait(task.task_id)
-    #
-    # if result.status_code == 200:
-    #     text = result.output["results"][0]["transcription_url"]
-    #     return {
-    #         "text": text,
-    #         "usage": {"input_tokens": 0, "output_tokens": 500},
-    #     }
-    # else:
-    #     raise Exception(f"ASR 失败: {result.message}")
+    result = Transcription.wait(task_id)
+
+    if result.output["task_status"] == "SUCCEEDED":
+        transcription_url = result.output["results"][0]["transcription_url"]
+        resp = requests.get(transcription_url)
+        data = resp.json()
+        text = data["transcripts"][0]["text"]
+        return {
+            "text": text,
+            "usage": {"input_tokens": 0, "output_tokens": len(text)},
+        }
+    else:
+        raise Exception(f"ASR 失败: {result.output}")

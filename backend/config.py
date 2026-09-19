@@ -19,7 +19,7 @@ CHROMA_DIR.mkdir(parents=True, exist_ok=True)
 
 # 千问 API
 DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "your-api-key-here")
-QWEN_ASR_MODEL = "paraformer-realtime-v2"
+QWEN_ASR_MODEL = "paraformer-v2"
 QWEN_LITE_MODEL = "qwen-turbo"  # 轻量模型，快
 QWEN_PRO_MODEL = "qwen-plus"    # 质量高模型
 

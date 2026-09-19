@@ -7,6 +7,7 @@ from backend.database import db
 from backend.agents.asr import transcribe_audio
 from backend.agents.writer import tag_and_score, write_journal, generate_quote
 from backend.agents.rule_nlp import rule_based_classify
+from backend.agents.content_classifier import classify_content
 from backend.agents.tts import generate_journal_audio
 from backend.agents.rag import retrieve_context
 from backend.agents.self_evolution import evaluate_journal
@@ -26,16 +27,20 @@ def fast_pipeline(audio_file_path: str, journey_id: str = None,
     print(f"[Fast Pipeline] trace_id={trace_id} 开始处理 {audio_file_path}")
 
     # Step 1: ASR 转写
-    print("[Step 1/5] ASR 转写中...")
+    print("[Step 1/8] ASR 转写中...")
     asr_result = transcribe_audio(audio_file_path, trace_id=trace_id)
     transcript = asr_result["text"]
 
+    # Step 1.5: 先给个内容预览和标签
+    print("[Step 1.5/8] 生成内容预览...")
+    preview_result = classify_content(transcript)
+
     # Step 2: 简单分段（按句号分）
-    print("[Step 2/5] 语义分段中...")
+    print("[Step 2/8] 语义分段中...")
     segments = [s.strip() for s in transcript.split("。") if len(s.strip()) > 10]
 
     # Step 3: 打标签+打分（用规则化NLP，不调大模型，省成本）
-    print("[Step 3/7] 打标签打分中（规则化，不调大模型）...")
+    print("[Step 3/8] 打标签打分中（规则化，不调大模型）...")
     clips = []
     for seg in segments:
         # 先用规则化跑，快且免费
@@ -54,11 +59,11 @@ def fast_pipeline(audio_file_path: str, journey_id: str = None,
     top_clips = clips[:5]  # 取前 5 个
 
     # Step 5: 写手帐
-    print("[Step 5/7] 写手帐中...")
+    print("[Step 5/8] 写手帐中...")
     journal = write_journal(top_clips, mode="quick", trace_id=trace_id)
 
     # Step 6: 自我评估（自进化）
-    print("[Step 6/7] 自我评估中...")
+    print("[Step 6/8] 自我评估中...")
     evaluation = evaluate_journal(
         content=journal["content"],
         title=journal["title"],
@@ -96,6 +101,11 @@ def fast_pipeline(audio_file_path: str, journey_id: str = None,
         "clips": top_clips,
         "mode": "fast",
         "evaluation": evaluation,
+        "content_preview": {
+            "summary": preview_result["message"],
+            "travel_score": preview_result["travel_score"],
+            "type": preview_result["content_type"],
+        },
         "audio_url": f"/static/audio/journal_{trace_id}.mp3",
     }
 
