@@ -19,6 +19,8 @@ app = FastAPI(title="旅行手帐 AI", version="0.1.0")
 
 # 挂载前端静态文件
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
+# 挂载音频文件目录
+app.mount("/static/audio", StaticFiles(directory="data/audio"), name="audio")
 
 
 @app.on_event("startup")

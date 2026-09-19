@@ -7,6 +7,7 @@ from backend.database import db
 from backend.agents.asr import transcribe_audio
 from backend.agents.writer import tag_and_score, write_journal, generate_quote
 from backend.agents.rule_nlp import rule_based_classify
+from backend.agents.tts import generate_journal_audio
 from backend.agents.rag import retrieve_context
 from backend.agents.self_evolution import evaluate_journal
 from backend.traces import new_trace_id
@@ -79,8 +80,13 @@ def fast_pipeline(audio_file_path: str, journey_id: str = None,
         )
 
     # Step 7: 生成今日金句
-    print("[Step 7/7] 生成今日金句...")
+    print("[Step 7/8] 生成今日金句...")
     quote_result = generate_quote(journal["content"], top_clips, trace_id=trace_id)
+
+    # Step 8: 生成语音版手帐（免费，不用大模型）
+    print("[Step 8/8] 生成语音版手帐...")
+    journal_text = f"{journal['title']}。{journal['content']}"
+    audio_result = generate_journal_audio(trace_id, journal_text)
 
     result = {
         "trace_id": trace_id,
@@ -90,10 +96,12 @@ def fast_pipeline(audio_file_path: str, journey_id: str = None,
         "clips": top_clips,
         "mode": "fast",
         "evaluation": evaluation,
+        "audio_url": f"/static/audio/journal_{trace_id}.mp3",
     }
 
     print(f"[Fast Pipeline] 完成！自评 {evaluation.get('overall_score', 0)}/10")
     print(f"[金句] {quote_result['quote']}")
+    print(f"[语音] {audio_result['audio_path']}")
     return result
 
 
