@@ -6,6 +6,7 @@ from datetime import datetime
 from backend.database import db
 from backend.agents.asr import transcribe_audio
 from backend.agents.writer import tag_and_score, write_journal, generate_quote
+from backend.agents.rule_nlp import rule_based_classify
 from backend.agents.rag import retrieve_context
 from backend.agents.self_evolution import evaluate_journal
 from backend.traces import new_trace_id
@@ -32,17 +33,18 @@ def fast_pipeline(audio_file_path: str, journey_id: str = None,
     print("[Step 2/5] 语义分段中...")
     segments = [s.strip() for s in transcript.split("。") if len(s.strip()) > 10]
 
-    # Step 3: 打标签+打分（并行模拟）
-    print("[Step 3/5] 打标签打分中...")
+    # Step 3: 打标签+打分（用规则化NLP，不调大模型，省成本）
+    print("[Step 3/7] 打标签打分中（规则化，不调大模型）...")
     clips = []
     for seg in segments:
-        tag_result = tag_and_score(seg, trace_id=trace_id)
+        # 先用规则化跑，快且免费
+        rule_result = rule_based_classify(seg)
         clips.append({
             "transcript": seg,
-            "tags": tag_result.get("tags", []),
-            "score": tag_result.get("score", 0.5),
-            "location": tag_result.get("location", "未知"),
-            "emotion": tag_result.get("emotion", "平静"),
+            "tags": rule_result["tags"],
+            "score": rule_result["score"],
+            "location": rule_result["location"],
+            "emotion": rule_result["emotion"],
         })
 
     # Step 4: 筛选 Top N（按分数排序）
