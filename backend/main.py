@@ -13,6 +13,7 @@ from backend.agents.rag import init_knowledge_base
 from backend.agents.router import route_request
 from backend.pipelines.simple_pipeline import fast_pipeline, enhanced_pipeline
 from backend.traces import get_trace_summary
+from backend.agents.self_evolution import init_evolution_tables, save_feedback, get_style_examples
 
 app = FastAPI(title="旅行手帐 AI", version="0.1.0")
 
@@ -24,6 +25,7 @@ app.mount("/static", StaticFiles(directory="frontend"), name="static")
 def startup():
     """启动时初始化"""
     init_db()
+    init_evolution_tables()
     # init_knowledge_base()  # 先注释，Chroma 模型下载慢，Demo 用 mock 数据
     print("🚀 服务器启动成功！")
 
@@ -164,6 +166,24 @@ def get_day_detail(day_id: str):
         "summary": day["summary"],
         "clips": clips,
     }
+
+
+# ========== 自进化相关 API ==========
+
+@app.post("/api/feedback")
+def submit_feedback(
+    journal_id: str = Form(...),
+    rating: int = Form(...),
+    comment: str = Form(""),
+):
+    """用户提交手帐反馈"""
+    return save_feedback(journal_id, rating, comment)
+
+
+@app.get("/api/style-examples")
+def list_style_examples(limit: int = 3):
+    """获取风格库中的优秀手帐示例"""
+    return get_style_examples(limit)
 
 
 if __name__ == "__main__":
