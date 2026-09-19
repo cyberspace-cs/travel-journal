@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 from backend.database import db
 from backend.agents.asr import transcribe_audio
-from backend.agents.writer import tag_and_score, write_journal
+from backend.agents.writer import tag_and_score, write_journal, generate_quote
 from backend.agents.rag import retrieve_context
 from backend.agents.self_evolution import evaluate_journal
 from backend.traces import new_trace_id
@@ -51,11 +51,11 @@ def fast_pipeline(audio_file_path: str, journey_id: str = None,
     top_clips = clips[:5]  # 取前 5 个
 
     # Step 5: 写手帐
-    print("[Step 5/6] 写手帐中...")
+    print("[Step 5/7] 写手帐中...")
     journal = write_journal(top_clips, mode="quick", trace_id=trace_id)
 
     # Step 6: 自我评估（自进化）
-    print("[Step 6/6] 自我评估中...")
+    print("[Step 6/7] 自我评估中...")
     evaluation = evaluate_journal(
         content=journal["content"],
         title=journal["title"],
@@ -63,16 +63,35 @@ def fast_pipeline(audio_file_path: str, journey_id: str = None,
         trace_id=trace_id,
     )
 
+    # 自评低于 7 分，自动重新生成一次
+    if evaluation.get("overall_score", 10) < 7:
+        print(f"[自进化] 自评 {evaluation.get('overall_score', 0)} 分，低于 7 分，重新生成...")
+        print(f"[自进化] 改进建议：{evaluation.get('improvement_suggestion', '')}")
+        # 重新生成一次（第二次会自动参考改进建议）
+        journal = write_journal(top_clips, mode="quick", trace_id=trace_id)
+        evaluation = evaluate_journal(
+            content=journal["content"],
+            title=journal["title"],
+            clips=top_clips,
+            trace_id=trace_id,
+        )
+
+    # Step 7: 生成今日金句
+    print("[Step 7/7] 生成今日金句...")
+    quote_result = generate_quote(journal["content"], top_clips, trace_id=trace_id)
+
     result = {
         "trace_id": trace_id,
         "title": journal["title"],
         "content": journal["content"],
+        "quote": quote_result["quote"],
         "clips": top_clips,
         "mode": "fast",
         "evaluation": evaluation,
     }
 
-    print(f"[Fast Pipeline] 完成！自评得分 {evaluation.get('overall_score', 0)}/10")
+    print(f"[Fast Pipeline] 完成！自评 {evaluation.get('overall_score', 0)}/10")
+    print(f"[金句] {quote_result['quote']}")
     return result
 
 

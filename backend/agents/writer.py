@@ -136,3 +136,50 @@ def tag_and_score(transcript: str):
             return data
         except:
             return {"tags": ["其他"], "score": 0.5, "location": "未知", "emotion": "平静"}
+
+
+@trace_agent("quote_generator", QWEN_LITE_MODEL)
+def generate_quote(content: str, clips: list):
+    """
+    从今天的手帐里提炼一句金句，方便发朋友圈/小红书
+    """
+    prompt = f"""
+    这是今天的旅行手帐内容：
+    {content}
+
+    请从里面提炼一句最适合发朋友圈的金句，要求：
+    1. 短，15-25 字
+    2. 有画面感，能让人想看这篇手帐
+    3. 不要鸡汤，要真实的感受
+    4. 就一句话，不要解释
+
+    直接返回这句话就行。
+    """
+
+    # Demo mock
+    if DASHSCOPE_API_KEY == "your-api-key-here":
+        return {
+            "quote": "今天的风，我记下来了。",
+            "usage": {"input_tokens": 200, "output_tokens": 20},
+        }
+
+    response = Generation.call(
+        model=QWEN_LITE_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        result_format="message",
+    )
+
+    if response.status_code == 200:
+        quote = response.output.choices[0].message.content.strip()
+        return {
+            "quote": quote,
+            "usage": {
+                "input_tokens": getattr(response.usage, "input_tokens", 0) or 0,
+                "output_tokens": getattr(response.usage, "output_tokens", 0) or 0,
+            },
+        }
+    else:
+        return {
+            "quote": "今天也是值得记住的一天。",
+            "usage": {"input_tokens": 0, "output_tokens": 0},
+        }
