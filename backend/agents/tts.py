@@ -20,8 +20,8 @@ VOICES = {
 }
 
 
-async def _generate_tts(text: str, output_path: str, voice: str = "female_warm"):
-    """内部异步生成 TTS"""
+async def _generate_tts_async(text: str, output_path: str, voice: str = "female_warm"):
+    """异步生成 TTS"""
     voice_id = VOICES.get(voice, VOICES["female_warm"])
     communicate = edge_tts.Communicate(text, voice_id)
     await communicate.save(output_path)
@@ -29,7 +29,7 @@ async def _generate_tts(text: str, output_path: str, voice: str = "female_warm")
 
 def generate_journal_audio(journal_id: str, content: str, voice: str = "female_warm"):
     """
-    把手帐内容转成语音
+    把手帐内容转成语音（同步包装）
     :param journal_id: 手帐 ID
     :param content: 手帐文字内容
     :param voice: 音色选择
@@ -37,8 +37,20 @@ def generate_journal_audio(journal_id: str, content: str, voice: str = "female_w
     """
     output_file = AUDIO_DIR / f"journal_{journal_id}.mp3"
 
-    # 运行异步生成
-    asyncio.run(_generate_tts(content, str(output_file), voice))
+    # 兼容 FastAPI 异步环境：如果已经有事件循环，就新开线程跑
+    try:
+        loop = asyncio.get_running_loop()
+        # 在异步环境里，用线程池跑新的事件循环
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(
+                asyncio.run,
+                _generate_tts_async(content, str(output_file), voice)
+            )
+            future.result()
+    except RuntimeError:
+        # 没有事件循环，直接跑
+        asyncio.run(_generate_tts_async(content, str(output_file), voice))
 
     return {
         "audio_path": str(output_file),
