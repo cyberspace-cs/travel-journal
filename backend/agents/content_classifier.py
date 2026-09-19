@@ -48,7 +48,7 @@ def classify_content(text: str):
             "content_type": "travel",
             "message": "检测到旅行内容，可以生成旅行手帐 ✨",
         }
-    elif work_count >= 2 and work_count > travel_count:
+    elif work_count >= 1 and work_count >= travel_count:
         return {
             "is_travel": False,
             "travel_score": travel_score,
