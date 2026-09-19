@@ -10,9 +10,13 @@ from backend.config import AUDIO_DIR
 
 # 可选的音色
 VOICES = {
-    "female_warm": "zh-CN-XiaoxiaoNeural",  # 温暖女声
-    "male_gentle": "zh-CN-YunxiNeural",     # 温柔男声
-    "female_lively": "zh-CN-XiaoyiNeural",  # 活泼女声
+    "female_warm": "zh-CN-XiaoxiaoNeural",  # 温暖女声（默认）
+    "female_gentle": "zh-CN-XiaoyiNeural",   # 温柔女声
+    "female_lively": "zh-CN-XiaohanNeural",  # 活泼女声
+    "female_mature": "zh-CN-XiaomengNeural", # 成熟女声
+    "male_gentle": "zh-CN-YunxiNeural",      # 温柔男声
+    "male_clear": "zh-CN-YunjianNeural",     # 清澈男声
+    "male_story": "zh-CN-YunyangNeural",     # 故事男声（像播客）
 }
 
 
