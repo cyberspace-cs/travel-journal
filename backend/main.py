@@ -93,6 +93,19 @@ def health():
     return {"status": "ok", "version": "0.1.0"}
 
 
+# ========== 夜间整理 ==========
+
+@app.post("/api/nightly-organize")
+def nightly_organize(journey_id: str = Form(...), date: str = Form(None)):
+    """
+    手动触发夜间整理 pipeline
+    把白天攒的片段整理成完整手帐
+    """
+    from backend.pipelines.nightly_pipeline import nightly_organize_pipeline
+    result = nightly_organize_pipeline(journey_id, date)
+    return result
+
+
 # ========== 旅程 CRUD ==========
 
 @app.post("/api/journeys")
