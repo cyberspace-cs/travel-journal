@@ -461,7 +461,23 @@
                 </div>
             </div>
 
-            <button class="submit-btn" id="submitBtn">开始生成手帐</button>
+            <div style="margin: 16px 0 12px; font-size: 13px; color: #8a9a8f; text-align: center;">选择内容类型</div>
+            <div class="mode-select" id="contentTypeSelect">
+                <div class="mode-btn active" data-type="auto">
+                    <div class="label">🤖 自动识别</div>
+                    <div class="desc">AI 判断内容类型</div>
+                </div>
+                <div class="mode-btn" data-type="travel">
+                    <div class="label">✈️ 旅行手帐</div>
+                    <div class="desc">旅行见闻记录</div>
+                </div>
+                <div class="mode-btn" data-type="work">
+                    <div class="label">📋 工作摘要</div>
+                    <div class="desc">会议/工作要点</div>
+                </div>
+            </div>
+
+            <button class="submit-btn" id="submitBtn">开始生成</button>
 
             <div class="progress" id="progress">
                 <p>正在处理中...</p>
@@ -510,8 +526,38 @@
             <!-- 操作 -->
             <div class="actions">
                 <button class="action-btn" onclick="resetPage()">再生成一个</button>
-                <button class="action-btn primary" onclick="shareQuote()">分享金句</button>
+                <button class="action-btn" onclick="shareQuote()">分享金句</button>
+                <button class="action-btn primary" onclick="shareJournal()">分享手帐</button>
             </div>
+
+            <!-- 分享选项 -->
+            <div class="share-options" id="shareOptions" style="display: none; margin-top: 16px;">
+                <div style="font-size: 13px; color: #8a9a8f; margin-bottom: 12px; text-align: center;">选择分享形式</div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button class="action-btn" style="flex: 1; min-width: 120px;" onclick="generateShareCard('quote')">
+                        ✨ 金句卡片
+                    </button>
+                    <button class="action-btn" style="flex: 1; min-width: 120px;" onclick="generateShareCard('journal')">
+                        📝 手帐长图
+                    </button>
+                    <button class="action-btn" style="flex: 1; min-width: 120px;" onclick="generateShareCard('audio')">
+                        🔊 语音片段
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部导航 -->
+        <div style="position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e5e0d5; padding: 12px 0; display: flex; justify-content: space-around; max-width: 600px; margin: 0 auto;">
+            <button style="flex: 1; border: none; background: none; padding: 8px; cursor: pointer; color: #2d5a3d; font-size: 12px;">
+                🎙️ 录音
+            </button>
+            <button style="flex: 1; border: none; background: none; padding: 8px; cursor: pointer; color: #8a9a8f; font-size: 12px;" onclick="alert('地图页即将上线 🗺️')">
+                🗺️ 足迹
+            </button>
+            <button style="flex: 1; border: none; background: none; padding: 8px; cursor: pointer; color: #8a9a8f; font-size: 12px;" onclick="alert('我的手帐即将上线 📔')">
+                📔 手帐
+            </button>
         </div>
     </div>
 
@@ -548,6 +594,17 @@
             });
         });
 
+        // 内容类型选择
+        const contentTypeBtns = document.querySelectorAll('#contentTypeSelect .mode-btn');
+        let selectedType = 'auto';
+        contentTypeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                contentTypeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedType = btn.dataset.type;
+            });
+        });
+
         // 提交
         submitBtn.addEventListener('click', async () => {
             if (!selectedFile) {
@@ -562,6 +619,7 @@
             const formData = new FormData();
             formData.append('audio', selectedFile);
             formData.append('mode', selectedMode);
+            formData.append('content_type', selectedType);
 
             try {
                 const res = await fetch('/api/process-audio', {
@@ -682,6 +740,33 @@
             const quote = document.getElementById('quoteText').textContent;
             navigator.clipboard.writeText(quote).then(() => {
                 alert('金句已复制，快去发朋友圈吧！✨');
+            });
+        }
+
+        // 分享手帐
+        function shareJournal() {
+            const options = document.getElementById('shareOptions');
+            options.style.display = options.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // 生成分享卡片
+        function generateShareCard(type) {
+            const quote = document.getElementById('quoteText').textContent;
+            const title = document.getElementById('resultTitle').textContent;
+            const content = document.getElementById('resultContent').textContent;
+
+            let text = '';
+            if (type === 'quote') {
+                text = `✨ ${quote}\n\n—— 旅行手帐 AI`;
+            } else if (type === 'journal') {
+                text = `📝 ${title}\n\n${content.slice(0, 200)}...\n\n—— 旅行手帐 AI`;
+            } else if (type === 'audio') {
+                text = `🔊 我的旅行语音手帐，快来听听！\n\n—— 旅行手帐 AI`;
+            }
+
+            navigator.clipboard.writeText(text).then(() => {
+                alert('分享内容已复制，快去粘贴吧！✨');
+                document.getElementById('shareOptions').style.display = 'none';
             });
         }
     </script>
