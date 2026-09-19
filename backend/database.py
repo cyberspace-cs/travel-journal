@@ -1,10 +1,13 @@
 """
 数据库初始化和连接
 """
+import sqlite3
 import sqlite_utils
 from backend.config import DB_PATH
 
-db = sqlite_utils.Database(str(DB_PATH))
+# 先创建 sqlite3 连接，允许跨线程使用
+_conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+db = sqlite_utils.Database(_conn)
 
 
 def init_db():
