@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅行手帐 AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #f8f5ee 0%, #f0ebe0 100%);
+            min-height: 100vh;
+            color: #2d5a3d;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #2d5a3d;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: #8a9a8f;
+        }
+
+        .upload-card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 4px 24px rgba(45, 90, 61, 0.08);
+            margin-bottom: 24px;
+        }
+
+        .upload-area {
+            border: 2px dashed #c8d5cb;
+            border-radius: 16px;
+            padding: 48px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 24px;
+        }
+
+        .upload-area:hover {
+            border-color: #2d5a3d;
+            background: #f8faf8;
+        }
+
+        .upload-area .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .upload-area p {
+            font-size: 14px;
+            color: #8a9a8f;
+        }
+
+        .mode-select {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 16px;
+            border: 2px solid #e5e5e5;
+            border-radius: 16px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .mode-btn.active {
+            border-color: #2d5a3d;
+            background: #f0f7f2;
+        }
+
+        .mode-btn .label {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .mode-btn .desc {
+            font-size: 12px;
+            color: #8a9a8f;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: #2d5a3d;
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .submit-btn:hover {
+            background: #1e3d2a;
+        }
+
+        .submit-btn:disabled {
+            background: #c8d5cb;
+            cursor: not-allowed;
+        }
+
+        .progress {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .progress.active {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e5e5e5;
+            border-radius: 2px;
+            margin-top: 16px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #2d5a3d;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 4px 24px rgba(45, 90, 61, 0.08);
+            display: none;
+        }
+
+        .result-card.active {
+            display: block;
+        }
+
+        .result-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2d5a3d;
+            margin-bottom: 20px;
+        }
+
+        .result-content {
+            font-size: 15px;
+            line-height: 1.8;
+            color: #4a5a4f;
+            white-space: pre-wrap;
+        }
+
+        .trace-info {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #8a9a8f;
+        }
+
+        .trace-info div {
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>旅行的声音，我帮你留着</h1>
+            <p>白天你玩你的，晚上手帐自己长出来</p>
+        </div>
+
+        <div class="upload-card">
+            <div class="upload-area" id="uploadArea">
+                <div class="icon">🎙️</div>
+                <p>点击上传录音文件</p>
+                <p style="font-size: 12px; margin-top: 8px;">支持 mp3 / wav / m4a</p>
+                <input type="file" id="fileInput" accept="audio/*" hidden>
+            </div>
+
+            <div class="mode-select">
+                <div class="mode-btn active" data-mode="quick">
+                    <div class="label">⚡ 快速生成</div>
+                    <div class="desc">~15 秒出结果</div>
+                </div>
+                <div class="mode-btn" data-mode="deep">
+                    <div class="label">✨ 深度生成</div>
+                    <div class="desc">~30 秒，带知识库</div>
+                </div>
+            </div>
+
+            <button class="submit-btn" id="submitBtn">开始生成手帐</button>
+
+            <div class="progress" id="progress">
+                <p>正在处理中...</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="result-card" id="resultCard">
+            <div class="result-title" id="resultTitle"></div>
+            <div class="result-content" id="resultContent"></div>
+            <div class="trace-info" id="traceInfo"></div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const modeBtns = document.querySelectorAll('.mode-btn');
+        const submitBtn = document.getElementById('submitBtn');
+        const progress = document.getElementById('progress');
+        const progressFill = document.getElementById('progressFill');
+        const resultCard = document.getElementById('resultCard');
+
+        let selectedFile = null;
+        let selectedMode = 'quick';
+
+        // 上传点击
+        uploadArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                selectedFile = e.target.files[0];
+                uploadArea.querySelector('p').textContent = `已选择：${selectedFile.name}`;
+            }
+        });
+
+        // 模式选择
+        modeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                modeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedMode = btn.dataset.mode;
+            });
+        });
+
+        // 提交
+        submitBtn.addEventListener('click', async () => {
+            if (!selectedFile) {
+                alert('请先选择音频文件');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            progress.classList.add('active');
+            resultCard.classList.remove('active');
+
+            // 模拟进度
+            let progressVal = 0;
+            const progressTimer = setInterval(() => {
+                progressVal += Math.random() * 10;
+                if (progressVal > 90) progressVal = 90;
+                progressFill.style.width = progressVal + '%';
+            }, 500);
+
+            const formData = new FormData();
+            formData.append('audio', selectedFile);
+            formData.append('mode', selectedMode);
+
+            try {
+                const res = await fetch('/api/process-audio', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await res.json();
+
+                clearInterval(progressTimer);
+                progressFill.style.width = '100%';
+
+                setTimeout(() => {
+                    progress.classList.remove('active');
+                    submitBtn.disabled = false;
+                    resultCard.classList.add('active');
+
+                    document.getElementById('resultTitle').textContent = data.title;
+                    document.getElementById('resultContent').textContent = data.content;
+
+                    if (data.trace) {
+                        const t = data.trace;
+                        document.getElementById('traceInfo').innerHTML = `
+                            <div>⏱️ 总耗时：${(t.total_duration_ms / 1000).toFixed(1)} 秒</div>
+                            <div>🔢 调用次数：${t.call_count} 次</div>
+                            <div>💰 总成本：¥${t.total_cost_cny.toFixed(4)}</div>
+                        `;
+                    }
+                }, 300);
+
+            } catch (err) {
+                alert('处理失败：' + err.message);
+                clearInterval(progressTimer);
+                progress.classList.remove('active');
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
