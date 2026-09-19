@@ -7,6 +7,7 @@ from backend.database import db
 from backend.agents.asr import transcribe_audio
 from backend.agents.writer import tag_and_score, write_journal
 from backend.agents.rag import retrieve_context
+from backend.agents.self_evolution import evaluate_journal
 from backend.traces import new_trace_id
 
 
@@ -50,8 +51,17 @@ def fast_pipeline(audio_file_path: str, journey_id: str = None,
     top_clips = clips[:5]  # 取前 5 个
 
     # Step 5: 写手帐
-    print("[Step 5/5] 写手帐中...")
+    print("[Step 5/6] 写手帐中...")
     journal = write_journal(top_clips, mode="quick", trace_id=trace_id)
+
+    # Step 6: 自我评估（自进化）
+    print("[Step 6/6] 自我评估中...")
+    evaluation = evaluate_journal(
+        content=journal["content"],
+        title=journal["title"],
+        clips=top_clips,
+        trace_id=trace_id,
+    )
 
     result = {
         "trace_id": trace_id,
@@ -59,9 +69,10 @@ def fast_pipeline(audio_file_path: str, journey_id: str = None,
         "content": journal["content"],
         "clips": top_clips,
         "mode": "fast",
+        "evaluation": evaluation,
     }
 
-    print(f"[Fast Pipeline] 完成！耗时请看 trace")
+    print(f"[Fast Pipeline] 完成！自评得分 {evaluation.get('overall_score', 0)}/10")
     return result
 
 
